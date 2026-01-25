@@ -1,0 +1,150 @@
+# Aifr Configuration Examples
+
+This file shows various configuration examples for different providers.
+
+## Sherlock API (Default)
+
+```json
+{
+  "api_key": "your-sherlock-api-key",
+  "provider": "sherlock",
+  "model": "Llama-3.1-8B-Instruct",
+  "context_limit": 6000
+}
+```
+
+## OpenAI API
+
+```json
+{
+  "api_key": "sk-your-openai-key",
+  "provider": "openai",
+  "model": "gpt-4",
+  "context_limit": 8000
+}
+```
+
+**Available models:**
+- `gpt-4`
+- `gpt-4-turbo`
+- `gpt-3.5-turbo`
+- `gpt-4-32k` (if you have access)
+
+## OpenWebUI (Local)
+
+```json
+{
+  "api_key": "your-local-token",
+  "provider": "openwebui",
+  "base_url": "http://localhost:3000",
+  "model": "granite3.1-dense:8b",
+  "context_limit": 4000
+}
+```
+
+**Custom server:**
+```json
+{
+  "api_key": "token",
+  "provider": "openwebui",
+  "base_url": "http://192.168.1.100:8080",
+  "model": "llama3:8b"
+}
+```
+
+**Available models (depends on your Ollama installation):**
+- `llama3:8b`
+- `granite3.1-dense:8b`
+- `mistral:7b`
+- `codellama:7b`
+
+## Brave Summarizer API
+
+```json
+{
+  "api_key": "your-brave-api-key",
+  "provider": "brave"
+}
+```
+
+**Note:** Brave provider is for web search summarization, not general chat.
+
+## Multi-Provider Setup
+
+You can switch providers using environment variables without changing config:
+
+**config.json (default):**
+```json
+{
+  "context_limit": 6000
+}
+```
+
+**Usage:**
+```bash
+# Use Sherlock
+export SHERLOCK_API_KEY="sherlock-key"
+aifr 'Question' -m Bielik-11B-v2.6
+
+# Switch to OpenAI
+export OPENAI_API_KEY="sk-..."
+aifr 'Question' -m gpt-4
+
+# Use local OpenWebUI
+export OPENWEBUI_API_KEY="local-token"
+aifr 'Question' -m llama3:8b
+```
+
+## Minimal Configuration
+
+If you only use environment variables, you don't need config.json:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+aifr 'What is Python?'  # Auto-detects OpenAI provider
+```
+
+## Full Configuration Example
+
+```json
+{
+  "api_key": "your-api-key",
+  "provider": "sherlock",
+  "model": "Llama-3.1-8B-Instruct",
+  "context_limit": 6000,
+  "base_url": null
+}
+```
+
+**Fields:**
+- `api_key` (required): API authentication key
+- `provider` (optional): "sherlock", "openai", "openwebui", or "brave" (default: auto-detect)
+- `model` (optional): Default model to use (can override with `-m` flag)
+- `context_limit` (optional): Max tokens/words in context (default: 6000)
+- `base_url` (optional): Custom endpoint URL (for OpenWebUI only)
+
+## Provider Priority
+
+1. Explicit `provider` in config.json
+2. Environment variable detection:
+   - `OPENAI_API_KEY` → openai
+   - `BRAVE_API_KEY` → brave
+   - `OPENWEBUI_API_KEY` → openwebui
+   - `SHERLOCK_API_KEY` / `AIFERRO_API_KEY` → sherlock
+
+## Location
+
+Place your config at:
+```
+~/.config/aifr/config.json
+```
+
+Or on Linux/Mac:
+```
+$HOME/.config/aifr/config.json
+```
+
+On Windows:
+```
+%USERPROFILE%\.config\aifr\config.json
+```

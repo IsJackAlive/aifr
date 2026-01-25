@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["aifr*"]
+exclude = ["images*", "tests*"]
+
+[project]
+name = "aifr"
+version = "1.3.0"
+description = "Multi-provider CLI assistant supporting Sherlock, OpenAI, OpenWebUI, and Brave APIs"
+authors = [{name = "Aifr Team", email = "stasiak.dm@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["cli", "llm", "assistant", "ai", "sherlock"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "requests==2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.0.0",
+    "pytest-mock==3.12.0",
+    "mypy==1.8.0",
+    "types-requests==2.31.0.20240106",
+]
+
+[project.scripts]
+aifr = "aifr.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/IsJackAlive/aifr"
+Documentation = "https://github.com/IsJackAlive/aifr#readme"
+Repository = "https://github.com/IsJackAlive/aifr"
+Issues = "https://github.com/IsJackAlive/aifr/issues"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+]
