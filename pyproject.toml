@@ -37,6 +37,10 @@ dev = [
     "mypy==1.8.0",
     "types-requests==2.31.0.20240106",
 ]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+]
 
 [project.scripts]
 aifr = "aifr.cli:main"

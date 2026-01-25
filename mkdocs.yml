@@ -1,0 +1,60 @@
+site_name: Aiferro
+site_description: Twój osobisty asystent AI w terminalu
+site_author: Aifr Team
+site_url: https://isjackalive.github.io/aifr/
+
+theme:
+  name: material
+  language: pl
+  palette:
+    - scheme: default
+      primary: teal
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Przełącz na tryb ciemny
+    - scheme: slate
+      primary: teal
+      accent: lime
+      toggle:
+        icon: material/weather-sunny
+        name: Przełącz na tryb jasny
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.path
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+repo_name: IsJackAlive/aifr
+repo_url: https://github.com/IsJackAlive/aifr
+
+nav:
+  - Wstęp: index.md
+  - Funkcje:
+    - Agenci AI: features/agents.md
+    - Kolory i Wygląd: features/colors.md
+  - Poradniki:
+    - Konfiguracja: guides/configuration.md
+    - Migracja v1.0 → v1.1: guides/migration_v1.0_to_v1.1.md
+  - Historia zmian:
+    - Wersja 1.3.0: releases/v1.3.0.md
+    - Wersja 1.2.0: releases/v1.2.0.md
+    - Wersja 1.1.0: releases/v1.1.0.md
+    - Wersja 1.0.0: releases/v1.0.0.md
+  - Dla deweloperów:
+    - Specyfikacja techniczna: technical/specification.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - attr_list
