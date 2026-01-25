@@ -68,10 +68,10 @@ Handles markdown parsing and colorization:
 
 ### Integration Points
 
-1. **CLI Integration** ([cli.py](aifr/cli.py))
+1. **CLI Integration** ([cli.py](https://github.com/IsJackAlive/aifr/blob/main/aifr/cli.py))
    - Version flag now calls `print_version_banner()` instead of simple print
 
-2. **Output Integration** ([output.py](aifr/output.py))
+2. **Output Integration** ([output.py](https://github.com/IsJackAlive/aifr/blob/main/aifr/output.py))
    - `print_chunks()` now renders all text through `render_markdown()`
 
 ### Color Palette
@@ -89,8 +89,8 @@ RETRO_COLORS = [
 
 ## Testing
 Both modules include comprehensive unit tests:
-- [tests/test_gradient_display.py](tests/test_gradient_display.py) - 11 tests
-- [tests/test_markdown_renderer.py](tests/test_markdown_renderer.py) - 20 tests
+- [tests/test_gradient_display.py](https://github.com/IsJackAlive/aifr/blob/main/tests/test_gradient_display.py) - 11 tests
+- [tests/test_markdown_renderer.py](https://github.com/IsJackAlive/aifr/blob/main/tests/test_markdown_renderer.py) - 20 tests
 
 Run tests with:
 ```bash

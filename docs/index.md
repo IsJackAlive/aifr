@@ -1,7 +1,5 @@
 # Aifr Terminal Assistant
 
-> Napisane przez: GPT-5.1-Codex-max -> Claude Sonnet 4.5
-
 **Wersja 1.2.0 - Multi-Provider** 🌐
 
 Profesjonalny asystent terminalowy w Pythonie z wsparciem dla wielu dostawców API (Sherlock, OpenAI, OpenWebUI, Brave) i inteligentną selekcją agentów.
@@ -12,14 +10,14 @@ Profesjonalny asystent terminalowy w Pythonie z wsparciem dla wielu dostawców A
 ---
 <div align="center">
 
-> **🌟 NEW in v1.2.0: Multi-Provider Support!**  
-> Aifr now works with OpenAI, OpenWebUI (local), Brave Summarizer, and Sherlock API.  
-> See [RELEASE_v1.2.0.md](RELEASE_v1.2.0.md) for details.
-
-![aifr image](images/img.png)
+**🌟 NEW in v1.2.0: Multi-Provider Support!**  
+Aifr now works with OpenAI, OpenWebUI (local), Brave Summarizer, and Sherlock API.  
+See [RELEASE_v1.2.0.md](./releases/RELEASE_v1.2.0.md) for details.
 
 </div>
 ---
+
+![aifr image](./assets/img.png)
 
 ## ✨ Features
 
@@ -36,10 +34,24 @@ Profesjonalny asystent terminalowy w Pythonie z wsparciem dla wielu dostawców A
 
 ## 📦 Instalacja
 
-### Ze standardowego PyPI:
 ```bash
-pip install aifr
+git clone https://github.com/IsJackAlive/aifr.git
+
+cd aifr
+
+python3 -m venv .
+
+source ./venv/bin/activate
+
+pip install -e .
 ```
+
+### Przykłady użycia:
+
+![aifr image](./assets/scs-1.png)
+
+![aifr image](./assets/scs-2.png)
+
 
 ### Dla developerów:
 ```bash
@@ -395,9 +407,6 @@ mypy aifr/
 # Build
 python -m build
 ```
-
-Zobacz [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) dla szczegółów.
-
 ## 📝 Wskazówki CLI (Bash)
 
 ### ✅ Poprawne użycie (v1.1)
@@ -416,6 +425,4 @@ cat file.txt | aifr 'Przeanalizuj to'
 aifr 'Debug this' -f app.py -c 'python app.py' --stats
 ```
 
-**Migration:** Zobacz [MIGRATION_v1.0_to_v1.1.md](MIGRATION_v1.0_to_v1.1.md) dla pełnego przewodnika aktualizacji.
-
-## 🧪 Testowanie
+**Migration:** Zobacz [MIGRATION_v1.0_to_v1.1.md](./guides/migration_v1.0_to_v1.1.md) dla pełnego przewodnika aktualizacji.

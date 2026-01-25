@@ -1,6 +1,6 @@
-# Aiferro (Aifr) - Konfiguracja
+# Aifr - Konfiguracja
 
-Aiferro można konfigurować na dwa główne sposoby:
+Aifr można konfigurować na dwa główne sposoby:
 1. Przez plik konfiguracyjny `config.json` (zalecane)
 2. Przez zmienne środowiskowe (dla szybkiej zmiany ustawień)
 
@@ -8,12 +8,12 @@ Aiferro można konfigurować na dwa główne sposoby:
 
 Plik konfiguracyjny powinien znajdować się w katalogu domowym użytkownika:
 
-- **Linux/Mac**: `~/.config/aiferro/config.json`
-- **Windows**: `%USERPROFILE%\.config\aiferro\config.json`
+- **Linux/Mac**: `~/.config/aifr/config.json`
+- **Windows**: `%USERPROFILE%\.config\aifr\config.json`
 
 Jeżeli katalog nie istnieje, należy go utworzyć:
 ```bash
-mkdir -p ~/.config/aiferro
+mkdir -p ~/.config/aifr
 ```
 
 ## Przykłady konfiguracji
@@ -77,7 +77,7 @@ Służy tylko do podsumowywania treści z internetu.
 
 ## Zmienne środowiskowe
 
-Możesz także używać zmiennych środowiskowych, aby nadpisać konfigurację bez edycji pliku. Aiferro automatycznie wykryje providera na podstawie ustawionej zmiennej.
+Możesz także używać zmiennych środowiskowych, aby nadpisać konfigurację bez edycji pliku. Aifr automatycznie wykryje providera na podstawie ustawionej zmiennej.
 
 | Zmienna | Provider | Przykład |
 |---------|----------|----------|
