@@ -1,0 +1,104 @@
+"""Tests for command_parser module."""
+from __future__ import annotations
+
+import pytest
+
+from aifr.command_parser import Command, CommandError, parse_command
+
+
+class TestParseCommand:
+    """Tests for parse_command function."""
+
+    def test_simple_ask(self) -> None:
+        """Test parsing a simple ask command."""
+        cmd = parse_command("$ask: What is Python?")
+        assert cmd.ask == "What is Python?"
+        assert cmd.file is None
+        assert cmd.model is None
+        assert cmd.context_limit is None
+        assert cmd.console is None
+
+    def test_ask_without_marker(self) -> None:
+        """Test parsing without $ask marker (treats whole text as question)."""
+        cmd = parse_command("What is Python?")
+        assert cmd.ask == "What is Python?"
+        assert cmd.file is None
+
+    def test_ask_with_file(self) -> None:
+        """Test parsing ask with file parameter."""
+        cmd = parse_command("$ask: Summarize this $file: README.md")
+        assert cmd.ask == "Summarize this"
+        assert cmd.file == "README.md"
+
+    def test_ask_with_model(self) -> None:
+        """Test parsing with model parameter."""
+        cmd = parse_command("$ask: Explain $model: gpt-4")
+        assert cmd.ask == "Explain"
+        assert cmd.model == "gpt-4"
+
+    def test_ask_with_context_limit(self) -> None:
+        """Test parsing with context_limit parameter."""
+        cmd = parse_command("$ask: Question $context_limit: 8000")
+        assert cmd.ask == "Question"
+        assert cmd.context_limit == 8000
+
+    def test_ask_with_console_command(self) -> None:
+        """Test parsing with console command."""
+        cmd = parse_command("$ask: What's wrong? $cons: ls -la")
+        assert cmd.ask == "What's wrong?"
+        assert cmd.console == "ls -la"
+
+    def test_ask_with_console_stdin(self) -> None:
+        """Test parsing with console from stdin (empty value)."""
+        cmd = parse_command("$ask: Analyze $cons:")
+        assert cmd.ask == "Analyze"
+        assert cmd.console == ""
+
+    def test_aifr_prefix_stripped(self) -> None:
+        """Test that 'aifr' prefix is stripped."""
+        cmd = parse_command("aifr $ask: Hello")
+        assert cmd.ask == "Hello"
+
+    def test_aifr_with_dash_prefix(self) -> None:
+        """Test that 'aifr -' prefix is stripped."""
+        cmd = parse_command("aifr - $ask: Hello")
+        assert cmd.ask == "Hello"
+
+    def test_empty_command_raises(self) -> None:
+        """Test that empty command raises CommandError."""
+        with pytest.raises(CommandError, match="Brak polecenia"):
+            parse_command("")
+
+    def test_no_ask_raises(self) -> None:
+        """Test that command without ask raises CommandError."""
+        with pytest.raises(CommandError, match="wymaga \\$ask"):
+            parse_command("$file: test.txt")
+
+    def test_case_insensitive_markers(self) -> None:
+        """Test that markers are case-insensitive."""
+        cmd = parse_command("$ASK: Test $FILE: test.txt")
+        assert cmd.ask == "Test"
+        assert cmd.file == "test.txt"
+
+    def test_invalid_context_limit_returns_none(self) -> None:
+        """Test that invalid context_limit returns None."""
+        cmd = parse_command("$ask: Test $context_limit: invalid")
+        assert cmd.ask == "Test"
+        assert cmd.context_limit is None
+
+    def test_console_alias(self) -> None:
+        """Test that 'console' works as alias for 'cons'."""
+        cmd = parse_command("$ask: Test $console: pwd")
+        assert cmd.console == "pwd"
+
+    def test_all_parameters(self) -> None:
+        """Test parsing with all parameters."""
+        cmd = parse_command(
+            "$ask: Complex query $file: data.txt $model: gpt-4 "
+            "$context_limit: 10000 $cons: echo test"
+        )
+        assert cmd.ask == "Complex query"
+        assert cmd.file == "data.txt"
+        assert cmd.model == "gpt-4"
+        assert cmd.context_limit == 10000
+        assert cmd.console == "echo test"

@@ -1,0 +1,140 @@
+"""Tests for cli module."""
+from __future__ import annotations
+
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+
+from aifr.cli import build_user_message
+from aifr.command_parser import Command
+
+
+class TestBuildUserMessage:
+    """Tests for build_user_message function."""
+
+    def test_simple_ask_only(self) -> None:
+        """Test building message with only ask parameter."""
+        cmd = Command(
+            ask="What is Python?",
+            file=None,
+            model=None,
+            context_limit=None,
+            console=None,
+        )
+        msg = build_user_message(cmd)
+        assert msg == "What is Python?"
+
+    def test_ask_with_stdin_data(self) -> None:
+        """Test building message with stdin data but no console flag."""
+        cmd = Command(
+            ask="Analyze this",
+            file=None,
+            model=None,
+            context_limit=None,
+            console=None,
+        )
+        msg = build_user_message(cmd, stdin_data="some piped data")
+        # stdin_data is ignored if console is None
+        assert msg == "Analyze this"
+
+    def test_ask_with_console_stdin(self) -> None:
+        """Test building message with console reading from stdin."""
+        cmd = Command(
+            ask="Analyze",
+            file=None,
+            model=None,
+            context_limit=None,
+            console="",  # Empty string means read from stdin
+        )
+        msg = build_user_message(cmd, stdin_data="piped data")
+        assert "Analyze" in msg
+        assert "===CONSOLE_START===" in msg
+        assert "piped data" in msg
+        assert "===CONSOLE_END===" in msg
+
+    @patch("aifr.cli.load_file")
+    def test_ask_with_file(self, mock_load_file: Mock) -> None:
+        """Test building message with file parameter."""
+        mock_path = Mock(spec=Path)
+        mock_path.name = "test.txt"
+        mock_load_file.return_value = ("file content here", mock_path)
+
+        cmd = Command(
+            ask="Summarize",
+            file="test.txt",
+            model=None,
+            context_limit=None,
+            console=None,
+        )
+        msg = build_user_message(cmd)
+        
+        assert "Summarize" in msg
+        assert "===FILE_START===" in msg
+        assert "file content here" in msg
+        assert "===FILE_END===" in msg
+        assert "test.txt" in msg
+        mock_load_file.assert_called_once_with("test.txt")
+
+    @patch("aifr.cli.get_console_context")
+    def test_ask_with_console_command(self, mock_get_console: Mock) -> None:
+        """Test building message with console command."""
+        mock_get_console.return_value = "command output"
+
+        cmd = Command(
+            ask="What's wrong?",
+            file=None,
+            model=None,
+            context_limit=None,
+            console="ls -la",
+        )
+        msg = build_user_message(cmd)
+        
+        assert "What's wrong?" in msg
+        assert "===CONSOLE_START===" in msg
+        assert "command output" in msg
+        assert "===CONSOLE_END===" in msg
+        mock_get_console.assert_called_once_with("ls -la")
+
+    @patch("aifr.cli.get_console_context")
+    def test_console_command_no_output(self, mock_get_console: Mock) -> None:
+        """Test building message when console command returns no output."""
+        mock_get_console.return_value = None
+
+        cmd = Command(
+            ask="Check",
+            file=None,
+            model=None,
+            context_limit=None,
+            console="some_command",
+        )
+        msg = build_user_message(cmd)
+        
+        assert "Check" in msg
+        assert "Brak danych z konsoli" in msg
+
+    @patch("aifr.cli.load_file")
+    @patch("aifr.cli.get_console_context")
+    def test_ask_with_file_and_console(
+        self, mock_get_console: Mock, mock_load_file: Mock
+    ) -> None:
+        """Test building message with both file and console."""
+        mock_path = Mock(spec=Path)
+        mock_path.name = "data.txt"
+        mock_load_file.return_value = ("file data", mock_path)
+        mock_get_console.return_value = "console output"
+
+        cmd = Command(
+            ask="Analyze both",
+            file="data.txt",
+            model=None,
+            context_limit=None,
+            console="pwd",
+        )
+        msg = build_user_message(cmd)
+        
+        assert "Analyze both" in msg
+        assert "===FILE_START===" in msg
+        assert "file data" in msg
+        assert "===CONSOLE_START===" in msg
+        assert "console output" in msg
