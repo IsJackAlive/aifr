@@ -19,25 +19,48 @@ from .terminal_capture import get_console_context, read_stdin_early
 __version__ = "1.3.0"
 
 
+
+def resolve_model_alias(model_name: str, aliases: dict[str, str]) -> tuple[str, Optional[str]]:
+    """
+    Resolve model alias and detect provider override.
+    
+    Returns:
+        (resolved_model_name, detected_provider)
+        detected_provider is None if not found/overridden.
+    """
+    # 1. Check aliases
+    if model_name in aliases:
+        model_name = aliases[model_name]
+    
+    # 2. Check for provider prefix (e.g. "openai/gpt-4")
+    if "/" in model_name:
+        parts = model_name.split("/", 1)
+        return parts[1], parts[0]
+        
+    return model_name, None
+
+
 def build_user_message(
     prompt: str,
-    file_path: Optional[str] = None,
+    file_paths: Optional[list[str]] = None,
     console_cmd: Optional[str] = None,
     stdin_data: Optional[str] = None,
-) -> tuple[str, Optional[int]]:
+) -> tuple[str, int]:
     """
     Build complete user message with context.
     
     Returns:
-        (message, file_content_length) tuple
+        (message, total_file_content_length) tuple
     """
     parts = [f"Pytanie: {prompt}"]
-    file_content_length = None
+    total_len = 0
     
-    if file_path:
-        content, path = load_file(file_path)
-        file_content_length = len(content)
-        parts.append(f"\nTreść pliku {path.name}:\n===FILE_START===\n{content}\n===FILE_END===\n")
+    if file_paths:
+        for fpath in file_paths:
+            content, path = load_file(fpath)
+            total_len += len(content)
+            parts.append(f"\nTreść pliku {path.name}:\n===FILE_START===\n{content}\n===FILE_END===\n")
+    
     
     # Handle console command or stdin
     if console_cmd is not None or stdin_data:
@@ -54,8 +77,8 @@ def build_user_message(
             parts.append("\n(Brak danych z konsoli)\n")
     
     if len(parts) == 1:
-        return prompt, file_content_length
-    return "\n".join(parts), file_content_length
+        return prompt, total_len
+    return "\n".join(parts), total_len
 
 
 def process_request(
@@ -67,6 +90,7 @@ def process_request(
     provider: str = "sherlock",
     base_url: Optional[str] = None,
     stdin_data: Optional[str] = None,
+    model_aliases: dict[str, str] = None,
 ) -> int:
     """
     Process a single user request.
@@ -82,7 +106,7 @@ def process_request(
     try:
         user_message, file_content_length = build_user_message(
             prompt=args.prompt,
-            file_path=args.file,
+            file_paths=args.file,
             console_cmd=args.console,
             stdin_data=stdin_data,
         )
@@ -114,8 +138,25 @@ def process_request(
     system_prompt = get_system_prompt(agent_type)
     
     # Select model
-    model = select_model(args.prompt, args.model or cfg_model, bool(args.file))
-    if not is_supported(model):
+    # 1. Start with explicit flag or config
+    requested_model = args.model or cfg_model
+    
+    # 2. Resolve alias/provider if model is requested
+    if requested_model:
+        requested_model, detected_provider = resolve_model_alias(requested_model, model_aliases or {})
+        if detected_provider:
+             provider = detected_provider
+    
+    # 3. Final selection logic (handles auto-selection if requested_model is None)
+    model = select_model(args.prompt, requested_model, bool(args.file))
+    
+    if not is_supported(model) and not requested_model: # Warn only if auto-selected unsuppported (unlikely)
+         pass # Actually we trust select_model, but if user provided custom model we skip check
+    
+    if requested_model and not is_supported(model):
+        # Allow custom models via flag/alias without warning
+        pass
+    elif not is_supported(model):
         sys.stderr.write(f"Ostrzeżenie: model {model} nie jest na liście wspieranych, używam mimo to\n")
     
     # Build messages for API
@@ -268,6 +309,7 @@ def main() -> None:
                 cfg.provider,
                 cfg.base_url,
                 None,
+                model_aliases=cfg.model_aliases,
             )
         
         sys.exit(0)
@@ -287,6 +329,7 @@ def main() -> None:
         cfg.provider,
         cfg.base_url,
         stdin_data,
+        model_aliases=cfg.model_aliases,
     )
     sys.exit(exit_code)
 

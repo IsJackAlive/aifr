@@ -11,7 +11,7 @@ from typing import Optional
 class CliArgs:
     """Structured CLI arguments."""
     prompt: Optional[str]
-    file: Optional[str]
+    file: Optional[list[str]]
     console: Optional[str]
     model: Optional[str]
     context_limit: Optional[int]
@@ -44,9 +44,11 @@ def create_parser() -> argparse.ArgumentParser:
     )
     
     # File input
+    # File input
     parser.add_argument(
         "-f", "--file",
         metavar="PATH",
+        action="append",
         help="Path to file(s) to include in context (.txt/.md, max 5MB)",
     )
     
