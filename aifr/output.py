@@ -1,14 +1,28 @@
 from __future__ import annotations
 
 from typing import Iterable, Optional
+import sys
 
 from .markdown_renderer import render_markdown
 
 
-def print_chunks(text: str, chunk_size: int = 1200) -> None:
+
+def should_colorize(raw_flag: bool = False) -> bool:
+    """Check if output should be colorized (TTY and not raw mode)."""
+    if raw_flag:
+        return False
+    return sys.stdout.isatty()
+
+
+def print_chunks(text: str, chunk_size: int = 1200, raw_flag: bool = False) -> None:
     if not text:
         return
     
+    if not should_colorize(raw_flag):
+        # Raw output mode - flush immediately
+        print(text, flush=True)
+        return
+
     # Render markdown with retro colors
     rendered_text = render_markdown(text)
     

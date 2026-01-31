@@ -10,9 +10,11 @@ Profesjonalny asystent terminalowy w Pythonie z wsparciem dla wielu dostawców A
 ---
 <div align="center">
 
-> **🌟 NEW in v1.2.0: Multi-Provider Support!**  
-> Aifr now works with OpenAI, OpenWebUI (local), Brave Summarizer, and Sherlock API.  
-> See [RELEASE_v1.2.0.md](RELEASE_v1.2.0.md) for details.
+> **🌟 NEW in v1.3.0: Smart Agents & Clean Pipes!**  
+> Aifr now supports custom agents via config, multi-file context, and smart TTY detection for clean pipe output.  
+> See [CHANGELOG.md](CHANGELOG.md) for details.
+
+[![Changelog](https://img.shields.io/badge/Changelog-v1.3.0-blue)](CHANGELOG.md)
 
 ![aifr image](./docs/assets/img.png)
 
@@ -22,13 +24,13 @@ Profesjonalny asystent terminalowy w Pythonie z wsparciem dla wielu dostawców A
 ## ✨ Features
 
 - 🌐 **Multi-provider** - Sherlock, OpenAI, OpenWebUI, Brave API support
-- 🤖 **Agentic behavior** - 5 specialized agents (Debugger, Summarizer, Creative, Coder, Default)
+- 🤖 **Agentic behavior** - Built-in agents + **Custom Agents** support
 - 🪟 **Sliding window context** - Inteligentne zarządzanie historią (5 ostatnich tur)
 - 🔒 **Production-grade** - Pełne type hints, 71 testów jednostkowych, mypy validation
 - 🛡️ **Security** - Automatyczna detekcja wrażliwych plików (.env, klucze SSH)
-- 🔄 **Pipe-friendly** - Poprawna obsługa STDERR/STDOUT dla bash pipelines
+- 🔄 **Pipe-friendly** - **Smart TTY** detection for clean output in pipelines
 - 📦 **Easy install** - Dostępne przez `pip install aifr`
-- 🎯 **Smart model selection** - Automatyczny wybór odpowiedniego modelu LLM
+- 🎯 **Smart model selection** - Automatyczny wybór lub **Dynamic Aliases**
 - 💬 **Context memory** - Zapamiętywanie historii konwersacji między wywołaniami
 - 📊 **Stats flag** - Podgląd metadanych (agent, tokeny, model)
 
@@ -236,6 +238,16 @@ aifr --list-models       # Wyświetl dostępne modele
 - **`--reset` / `--new`** - Wyczyść historię konwersacji
   ```bash
   aifr --reset
+  ```
+
+- **`--agent`** - Aktywuj niestandardowego agenta z `config.json`
+  ```bash
+  aifr 'Refactor' --agent code
+  ```
+
+- **`--raw` / `-r`** - Wymuś surowy output (bez kolorów/markdown)
+  ```bash
+  aifr 'Explain' --raw > explain.txt
   ```
 
 - **`--stats` / `--info`** - Wyświetl metadane zapytania

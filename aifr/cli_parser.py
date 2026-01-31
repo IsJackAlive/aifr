@@ -20,6 +20,8 @@ class CliArgs:
     version: bool
     interactive: bool
     list_models: bool
+    agent: Optional[str]
+    raw: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -110,6 +112,20 @@ def create_parser() -> argparse.ArgumentParser:
         help="Show all available models and exit",
     )
     
+    # Custom Agent
+    parser.add_argument(
+        "--agent",
+        metavar="NAME",
+        help="Activate custom agent from config (e.g. 'code', 'docs')",
+    )
+
+    # Raw Output
+    parser.add_argument(
+        "--raw", "-r",
+        action="store_true",
+        help="Force raw output (no markdown/colors)",
+    )
+    
     # Interactive mode flag (internal)
     parser.add_argument(
         "--interactive", "-i",
@@ -150,6 +166,8 @@ def parse_cli_args(argv: Optional[list[str]] = None) -> CliArgs:
         version=args.version,
         interactive=args.interactive,
         list_models=args.list_models,
+        agent=args.agent,
+        raw=args.raw,
     )
 
 

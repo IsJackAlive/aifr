@@ -12,7 +12,7 @@ from .context import ContextManager
 from .file_loader import FileTooLargeError, SensitiveFileError, UnsupportedFileError, load_file
 from .gradient_display import print_version_banner
 from .model_selector import get_all_models, get_large_context_model, is_supported, select_model
-from .output import print_chunks, print_usage_summary
+from .output import print_chunks, print_usage_summary, should_colorize
 from .session_store import clear_session, load_session, save_session
 from .terminal_capture import get_console_context, read_stdin_early
 
@@ -91,6 +91,7 @@ def process_request(
     base_url: Optional[str] = None,
     stdin_data: Optional[str] = None,
     model_aliases: dict[str, str] = None,
+    custom_agents: dict[str, dict[str, str]] = None,
 ) -> int:
     """
     Process a single user request.
@@ -138,6 +139,23 @@ def process_request(
     system_prompt = get_system_prompt(agent_type)
     
     # Select model
+    # 0. Custom Agent Override
+    if args.agent:
+        agent_cfg = (custom_agents or {}).get(args.agent)
+        if agent_cfg:
+            # Override provider, model, and system prompt
+            provider = agent_cfg.get("provider", provider)
+            # Only set model if explicitly defined in agent config
+            if agent_cfg.get("model"):
+                args.model = agent_cfg.get("model") # Update args to influence selection
+                cfg_model = args.model
+            
+            # Allow custom system prompt
+            if agent_cfg.get("system_prompt"):
+                system_prompt = agent_cfg.get("system_prompt")
+        else:
+             sys.stderr.write(f"Warning: Custom agent '{args.agent}' not found in config. Using defaults.\n")
+
     # 1. Start with explicit flag or config
     requested_model = args.model or cfg_model
     
@@ -193,7 +211,7 @@ def process_request(
         return 1
     
     # Print response
-    print_chunks(reply.content)
+    print_chunks(reply.content, raw_flag=args.raw)
     
     # Show stats if requested
     if args.stats:
@@ -233,7 +251,10 @@ def main() -> None:
     
     # Handle version flag
     if args.version:
-        print_version_banner(__version__)
+        if should_colorize(args.raw):
+            print_version_banner(__version__)
+        else:
+            print(f"Aifr v{__version__}")
         sys.exit(0)
     
     # Handle list-models flag
@@ -310,6 +331,7 @@ def main() -> None:
                 cfg.base_url,
                 None,
                 model_aliases=cfg.model_aliases,
+                custom_agents=cfg.custom_agents,
             )
         
         sys.exit(0)
@@ -330,6 +352,7 @@ def main() -> None:
         cfg.base_url,
         stdin_data,
         model_aliases=cfg.model_aliases,
+        custom_agents=cfg.custom_agents,
     )
     sys.exit(exit_code)
 

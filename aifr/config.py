@@ -36,6 +36,7 @@ class AppConfig:
     provider: str = "sherlock"  # sherlock, openai, openwebui, brave
     base_url: Optional[str] = None  # For OpenWebUI custom endpoints
     model_aliases: Dict[str, str] = None
+    custom_agents: Dict[str, Dict[str, str]] = None
 
 
 def _read_json(path: Path) -> Dict[str, Any]:
@@ -91,6 +92,7 @@ def get_config() -> AppConfig:
         provider=provider,
         base_url=base_url,
         model_aliases=data.get("model_aliases", {}),
+        custom_agents=data.get("custom_agents", {}),
     )
 
 
