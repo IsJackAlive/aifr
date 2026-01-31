@@ -27,7 +27,7 @@ class TestParseCliArgs:
         """Test parsing with -f flag."""
         args = parse_cli_args(["Test", "-f", "readme.md"])
         assert args.prompt == "Test"
-        assert args.file == "readme.md"
+        assert args.file == ["readme.md"]
 
     def test_console_flag(self) -> None:
         """Test parsing with -c flag."""
@@ -67,7 +67,7 @@ class TestParseCliArgs:
             "--context-limit", "8000"
         ])
         assert args.prompt == "Summarize"
-        assert args.file == "doc.txt"
+        assert args.file == ["doc.txt"]
         assert args.model == "Bielik-11B"
         assert args.stats is True
         assert args.context_limit == 8000
@@ -79,12 +79,9 @@ class TestParseCliArgs:
 
 
 class TestValidateArgs:
-    """Tests for validate_args function."""
-
-    def test_valid_with_prompt(self) -> None:
-        """Test validation passes with prompt."""
+    def test_valid_with_prompt(self):
         args = CliArgs(
-            prompt="Test",
+            prompt="Hello",
             file=None,
             console=None,
             model=None,
@@ -92,15 +89,19 @@ class TestValidateArgs:
             reset=False,
             stats=False,
             version=False,
-            interactive=False,            list_models=False,        )
-        is_valid, error = validate_args(args, has_stdin=False)
-        assert is_valid is True
-        assert error is None
+            interactive=False,
+            list_models=False,
+            agent=None,
+            raw=False,
+            rag=False,
+            directory=".",
+        )
+        is_valid, _ = validate_args(args, has_stdin=False)
+        assert is_valid
 
-    def test_valid_with_stdin(self) -> None:
-        """Test validation passes with stdin data."""
+    def test_valid_with_stdin(self):
         args = CliArgs(
-            prompt="Analyze",
+            prompt="Summarize this",  # Prompt required even with stdin
             file=None,
             console=None,
             model=None,
@@ -108,12 +109,17 @@ class TestValidateArgs:
             reset=False,
             stats=False,
             version=False,
-            interactive=False,            list_models=False,        )
-        is_valid, error = validate_args(args, has_stdin=True)
-        assert is_valid is True
+            interactive=False,
+            list_models=False,
+            agent=None,
+            raw=False,
+            rag=False,
+            directory=".",
+        )
+        is_valid, _ = validate_args(args, has_stdin=True)
+        assert is_valid
 
-    def test_invalid_no_prompt_no_stdin(self) -> None:
-        """Test validation fails without prompt or stdin."""
+    def test_invalid_no_prompt_no_stdin(self):
         args = CliArgs(
             prompt=None,
             file=None,
@@ -123,13 +129,18 @@ class TestValidateArgs:
             reset=False,
             stats=False,
             version=False,
-            interactive=False,            list_models=False,        )
-        is_valid, error = validate_args(args, has_stdin=False)
-        assert is_valid is False
-        assert error is not None
+            interactive=False,
+            list_models=False,
+            agent=None,
+            raw=False,
+            rag=False,
+            directory=".",
+        )
+        is_valid, msg = validate_args(args, has_stdin=False)
+        assert not is_valid
+        assert "Error: prompt required" in msg
 
-    def test_valid_reset_only(self) -> None:
-        """Test validation passes with just --reset."""
+    def test_valid_reset_only(self):
         args = CliArgs(
             prompt=None,
             file=None,
@@ -139,12 +150,17 @@ class TestValidateArgs:
             reset=True,
             stats=False,
             version=False,
-            interactive=False,            list_models=False,        )
-        is_valid, error = validate_args(args, has_stdin=False)
-        assert is_valid is True
+            interactive=False,
+            list_models=False,
+            agent=None,
+            raw=False,
+            rag=False,
+            directory=".",
+        )
+        is_valid, _ = validate_args(args, has_stdin=False)
+        assert is_valid
 
-    def test_valid_version_only(self) -> None:
-        """Test validation passes with just --version."""
+    def test_valid_version_only(self):
         args = CliArgs(
             prompt=None,
             file=None,
@@ -154,6 +170,12 @@ class TestValidateArgs:
             reset=False,
             stats=False,
             version=True,
-            interactive=False,            list_models=False,        )
-        is_valid, error = validate_args(args, has_stdin=False)
+            interactive=False,
+            list_models=False,
+            agent=None,
+            raw=False,
+            rag=False,
+            directory=".",
+        )
+        is_valid, _ = validate_args(args, has_stdin=False)
         assert is_valid is True

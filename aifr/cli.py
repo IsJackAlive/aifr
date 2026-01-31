@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
+from typing import Iterator, Optional, Union
 
 from .agent_controller import AgentType, detect_agent_type, get_agent_name, get_system_prompt
 from .api import ApiError, ContextLengthError, LlmResponse, call_llm
@@ -12,9 +12,12 @@ from .context import ContextManager
 from .file_loader import FileTooLargeError, SensitiveFileError, UnsupportedFileError, load_file
 from .gradient_display import print_version_banner
 from .model_selector import get_all_models, get_large_context_model, is_supported, select_model
-from .output import print_chunks, print_usage_summary, should_colorize
+from .output import print_chunks, print_usage_summary, should_colorize, stream_display
 from .session_store import clear_session, load_session, save_session
 from .terminal_capture import get_console_context, read_stdin_early
+from .rag import RAGEngine
+import time
+from pathlib import Path
 
 __version__ = "1.3.0"
 
@@ -38,6 +41,35 @@ def resolve_model_alias(model_name: str, aliases: dict[str, str]) -> tuple[str, 
         return parts[1], parts[0]
         
     return model_name, None
+
+
+def resolve_agent_config(
+    agent_name: Optional[str],
+    custom_agents: Optional[dict[str, dict[str, str]]],
+    default_provider: str,
+    default_model: Optional[str],
+    default_system_prompt: str
+) -> tuple[str, Optional[str], str]:
+    """
+    Resolve effective provider, model, and system prompt based on agent configuration.
+    
+    Returns:
+        (provider, model, system_prompt)
+    """
+    if not agent_name:
+        return default_provider, default_model, default_system_prompt
+        
+    cfg = (custom_agents or {}).get(agent_name)
+    if not cfg:
+        sys.stderr.write(f"Warning: Custom agent '{agent_name}' not found in config. Using defaults.\n")
+        return default_provider, default_model, default_system_prompt
+        
+    # Override values
+    provider = cfg.get("provider", default_provider)
+    model = cfg.get("model", default_model) # Can remain None if not set
+    system_prompt = cfg.get("system_prompt", default_system_prompt)
+    
+    return provider, model, system_prompt
 
 
 def build_user_message(
@@ -90,8 +122,8 @@ def process_request(
     provider: str = "sherlock",
     base_url: Optional[str] = None,
     stdin_data: Optional[str] = None,
-    model_aliases: dict[str, str] = None,
-    custom_agents: dict[str, dict[str, str]] = None,
+    model_aliases: Optional[dict[str, str]] = None,
+    custom_agents: Optional[dict[str, dict[str, str]]] = None,
 ) -> int:
     """
     Process a single user request.
@@ -103,6 +135,43 @@ def process_request(
         sys.stderr.write("Error: Prompt is required\n")
         return 1
     
+    # RAG Context retrieval
+    rag_context = ""
+    rag_duration_ms = 0.0
+    
+    if args.rag:
+        try:
+            start_t = time.perf_counter()
+            if args.directory == "." or not args.directory:
+                scan_dir = Path(".")
+            else:
+                scan_dir = Path(args.directory)
+            
+            sys.stderr.write(f"[*] Scanning context in {scan_dir}...\n")
+            engine = RAGEngine()
+            engine.index_files(scan_dir)
+            results = engine.search(args.prompt, k=3)
+            
+            if results:
+                rag_parts = []
+                for res in results:
+                    # Compress content logic is inside RAGEngine or separate?
+                    # RAGEngine uses ContextCompressor internally? No, RAGEngine has one.
+                    # RAGEngine search returns DocumentChunk. which has full content.
+                    # We should compress it here or use engine helper.
+                    # The plan said "Append compressed top-3 results".
+                    # Let's compress here using engine's compressor if public, or create one.
+                    # engine.compressor is public in my implementation.
+                    compressed = engine.compressor.compress(res.content, res.file_path)
+                    rag_parts.append(f"--- {res.file_path} ---\n{compressed}")
+                
+                rag_context = "\n".join(rag_parts)
+                sys.stderr.write(f"[*] Found {len(results)} relevant fragments.\n")
+            
+            rag_duration_ms = (time.perf_counter() - start_t) * 1000
+        except Exception as e:
+            sys.stderr.write(f"Warning: RAG failed: {e}\n")
+
     # Build user message
     try:
         user_message, file_content_length = build_user_message(
@@ -111,6 +180,18 @@ def process_request(
             console_cmd=args.console,
             stdin_data=stdin_data,
         )
+        
+        if rag_context:
+            user_message = (
+                f"Use the following code context to answer the question:\n\n"
+                f"{rag_context}\n\n"
+                f"Question:\n{user_message}"
+            )
+            # Adjust length estimation if needed, though mostly for file warnings
+            if file_content_length is None:
+                file_content_length = len(rag_context)
+            else:
+                file_content_length += len(rag_context)
     except FileTooLargeError as exc:
         sys.stderr.write(f"{exc}\n")
         return 1
@@ -140,24 +221,16 @@ def process_request(
     
     # Select model
     # 0. Custom Agent Override
-    if args.agent:
-        agent_cfg = (custom_agents or {}).get(args.agent)
-        if agent_cfg:
-            # Override provider, model, and system prompt
-            provider = agent_cfg.get("provider", provider)
-            # Only set model if explicitly defined in agent config
-            if agent_cfg.get("model"):
-                args.model = agent_cfg.get("model") # Update args to influence selection
-                cfg_model = args.model
-            
-            # Allow custom system prompt
-            if agent_cfg.get("system_prompt"):
-                system_prompt = agent_cfg.get("system_prompt")
-        else:
-             sys.stderr.write(f"Warning: Custom agent '{args.agent}' not found in config. Using defaults.\n")
-
-    # 1. Start with explicit flag or config
-    requested_model = args.model or cfg_model
+    provider, args.model, system_prompt = resolve_agent_config(
+        args.agent,
+        custom_agents,
+        provider,
+        args.model or cfg_model, # Initial model candidate
+        system_prompt
+    )
+    # Update cfg_model to reflect potential change if args.model was updated (for logic below)
+    # Actually args.model is what matters for select_model
+    requested_model = args.model
     
     # 2. Resolve alias/provider if model is requested
     if requested_model:
@@ -181,14 +254,15 @@ def process_request(
     messages = ctx.build_messages(system_prompt, user_message)
     
     # Call LLM API
-    reply: LlmResponse
+    reply_or_iter: Union[LlmResponse, Iterator[LlmResponse]]
     try:
-        reply = call_llm(
+        reply_or_iter = call_llm(
             api_key=api_key,
             model=model,
             messages=messages,
             provider_name=provider,
             base_url=base_url,
+            stream=True,
         )
     except ContextLengthError as exc:
         # Fallback to large context model
@@ -196,12 +270,13 @@ def process_request(
         sys.stderr.write(f"Kontekst przekracza limit modelu {model}\n")
         sys.stderr.write(f"Przełączam na model {large_model} z większym oknem kontekstu...\n")
         try:
-            reply = call_llm(
+            reply_or_iter = call_llm(
                 api_key=api_key,
                 model=large_model,
                 messages=messages,
                 provider_name=provider,
                 base_url=base_url,
+                stream=True,
             )
         except ApiError as retry_exc:
             sys.stderr.write(f"Błąd API nawet z dużym modelem: {retry_exc}\n")
@@ -210,27 +285,64 @@ def process_request(
         sys.stderr.write(f"Błąd API: {exc}\n")
         return 1
     
-    # Print response
-    print_chunks(reply.content, raw_flag=args.raw)
+    # Process response (Stream or Single)
+    final_content = ""
+    # Use default model/stats, allowing override from stream
+    final_model = model
+    final_prompt_tokens = None
+    final_completion_tokens = None
+    final_total_tokens = None
+
+    if isinstance(reply_or_iter, Iterator):
+        # Generator for stream_display
+        def content_generator() -> Iterator[str]:
+            nonlocal final_content, final_model, final_prompt_tokens, final_completion_tokens, final_total_tokens
+            for chunk in reply_or_iter:
+                # Update metadata if present
+                if chunk.model:
+                    final_model = chunk.model
+                if chunk.prompt_tokens is not None:
+                    final_prompt_tokens = chunk.prompt_tokens
+                if chunk.completion_tokens is not None:
+                    final_completion_tokens = chunk.completion_tokens
+                if chunk.total_tokens is not None:
+                    final_total_tokens = chunk.total_tokens
+                
+                # Yield content
+                if chunk.content:
+                    final_content += chunk.content
+                    yield chunk.content
+        
+        stream_display(content_generator(), raw_flag=args.raw)
+    else:
+        # Single response
+        final_content = reply_or_iter.content
+        final_model = reply_or_iter.model
+        final_prompt_tokens = reply_or_iter.prompt_tokens
+        final_completion_tokens = reply_or_iter.completion_tokens
+        final_total_tokens = reply_or_iter.total_tokens
+        print_chunks(final_content, raw_flag=args.raw)
     
     # Show stats if requested
     if args.stats:
         sys.stderr.write(f"\n--- Statistics ---\n")
         sys.stderr.write(f"Agent: {get_agent_name(agent_type)}\n")
-        sys.stderr.write(f"Model: {reply.model}\n")
-        sys.stderr.write(f"Tokens: {reply.prompt_tokens} in / {reply.completion_tokens} out / {reply.total_tokens} total\n")
+        sys.stderr.write(f"Model: {final_model}\n")
+        sys.stderr.write(f"Tokens: {final_prompt_tokens} in / {final_completion_tokens} out / {final_total_tokens} total\n")
+        if rag_duration_ms > 0:
+            sys.stderr.write(f"RAG search time: {rag_duration_ms:.2f}ms\n")
         sys.stderr.write(f"Context window: {len(ctx.messages)} messages, {ctx.max_turns} max turns\n")
     else:
         # Default: just show model and tokens (legacy behavior)
         print_usage_summary(
-            reply.model,
-            reply.prompt_tokens,
-            reply.completion_tokens,
-            reply.total_tokens,
+            final_model,
+            final_prompt_tokens,
+            final_completion_tokens,
+            final_total_tokens,
         )
     
     # Save context
-    ctx.add_turn(user_message, reply.content)
+    ctx.add_turn(user_message, final_content)
     save_session(ctx.max_tokens, ctx.messages)
     
     return 0
@@ -319,6 +431,11 @@ def main() -> None:
                 stats=args.stats,
                 version=False,
                 interactive=True,
+                list_models=False,
+                agent=None,
+                raw=False,
+                rag=args.rag,
+                directory=args.directory,
             )
             
             process_request(

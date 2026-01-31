@@ -22,6 +22,8 @@ class CliArgs:
     list_models: bool
     agent: Optional[str]
     raw: bool
+    rag: bool
+    directory: str
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -47,6 +49,19 @@ def create_parser() -> argparse.ArgumentParser:
     
     # File input
     # File input
+    parser.add_argument(
+        "--rag",
+        action="store_true",
+        help="Enable Retrieval-Augmented Generation for context",
+    )
+    
+    parser.add_argument(
+        "-d", "--directory",
+        metavar="PATH",
+        default=".",
+        help="Root directory for RAG scanning (default: .)",
+    )
+
     parser.add_argument(
         "-f", "--file",
         metavar="PATH",
@@ -168,6 +183,8 @@ def parse_cli_args(argv: Optional[list[str]] = None) -> CliArgs:
         list_models=args.list_models,
         agent=args.agent,
         raw=args.raw,
+        rag=args.rag,
+        directory=args.directory,
     )
 
 
