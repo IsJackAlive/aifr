@@ -145,7 +145,8 @@ class RAGEngine:
         
         # Stopwords (very minimal)
         self.stopwords = {
-            "the", "is", "at", "which", "on", "and", "a", "an", "in", "to", "or", "for", "of"
+            "the", "is", "at", "which", "on", "and", "a", "an", "in", "to", "or", "for", "of",
+            "i", "w", "na", "z", "do", "o", "a", "że", "się", "jest", "to", "za", "od", "po", "lub", "czy"
         }
 
     def _tokenize(self, text: str) -> List[str]:
