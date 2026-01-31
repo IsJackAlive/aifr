@@ -88,7 +88,12 @@ class MarkdownRenderer:
         
         # Inside code block
         if self.in_code_block:
+            brown = rgb_to_ansi(*RETRO_COLORS['brown'])
+            # Render content inside code block with coral/brown theme
+            # Wait, original used coral for line. Let's check logic.
+            # Original: coral for code.
             coral = rgb_to_ansi(*RETRO_COLORS['coral'])
+            # Optional: Add side border? No, keeping simple.
             return f"{coral}{line}{reset_color()}"
         
         # Headers
@@ -129,6 +134,7 @@ class MarkdownRenderer:
             content = m.group(1)
             red = rgb_to_ansi(*RETRO_COLORS['red'])
             return f"{italic()}{red}{content}{reset_color()}"
+        # Use simple regex for *text* but careful with **
         text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', replace_italic, text)
         
         # Links [text](url)
@@ -149,6 +155,41 @@ class MarkdownRenderer:
         return text
 
 
+class StreamMarkdownRenderer(MarkdownRenderer):
+    """Buffered renderer for streaming output."""
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.buffer = ""
+        
+    def process_chunk(self, chunk: str) -> list[str]:
+        """
+        Process a chunk of text, buffer incomplete lines,
+        and return list of rendered lines available.
+        """
+        if not chunk:
+            return []
+            
+        self.buffer += chunk
+        rendered_parts = []
+        
+        while '\n' in self.buffer:
+            line, self.buffer = self.buffer.split('\n', 1)
+            rendered_parts.append(self._render_line(line) + '\n')
+            
+        return rendered_parts
+        
+    def flush(self) -> str:
+        """Render any remaining text in buffer."""
+        if not self.buffer:
+            return ""
+        
+        # Render remaining as a line (might be incomplete but we must flush)
+        res = self._render_line(self.buffer)
+        self.buffer = ""
+        return res
+
+
 def render_markdown(text: str) -> str:
     """
     Render markdown text with retro colors.
@@ -161,3 +202,4 @@ def render_markdown(text: str) -> str:
     """
     renderer = MarkdownRenderer()
     return renderer.render(text)
+

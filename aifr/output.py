@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Iterable, Iterator, Optional
 import sys
 
 from .markdown_renderer import render_markdown
@@ -48,6 +48,28 @@ def print_usage_summary(
     print(" | ".join([f"Model: {model}", *tokens]))
 
 
-def _chunk(text: str, size: int) -> Iterable[str]:
+def _chunk(text: str, size: int) -> Iterator[str]:
     for idx in range(0, len(text), size):
         yield text[idx : idx + size]
+
+
+def stream_display(generator: Iterable[str], raw_flag: bool = False) -> None:
+    """Stream display chunks of text."""
+    if raw_flag or not should_colorize(raw_flag):
+        for chunk in generator:
+            print(chunk, end="", flush=True)
+    else:
+        # Use buffered markdown renderer to prevent ANSI artifacts
+        # Import here to avoid circular dependencies if any (though usually top-level is fine)
+        from .markdown_renderer import StreamMarkdownRenderer
+        renderer = StreamMarkdownRenderer()
+        for chunk in generator:
+            for rendered_part in renderer.process_chunk(chunk):
+                print(rendered_part, end="", flush=True)
+        
+        # Flush remaining buffer
+        remaining = renderer.flush()
+        if remaining:
+            print(remaining, end="", flush=True)
+
+    print() # Newline at end

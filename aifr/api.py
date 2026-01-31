@@ -4,7 +4,7 @@ This module maintains backward compatibility while using the new provider system
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Iterator, Optional, Union
 
 from .providers import (
     ApiError,
@@ -21,23 +21,25 @@ def call_llm(
     api_key: str,
     model: str,
     messages: list[dict[str, str]],
-    temperature: float = 0.2,
     provider_name: str = "sherlock",
+    temperature: float = 0.2,
     base_url: Optional[str] = None,
-) -> LlmResponse:
+    stream: bool = False,
+) -> Union[LlmResponse, Iterator[LlmResponse]]:
     """
-    Call LLM API using specified provider.
-
+    Unified function to call any supported LLM provider.
+    
     Args:
-        api_key: API key for authentication
-        model: Model name to use
-        messages: List of message dicts with 'role' and 'content'
-        temperature: Sampling temperature (default 0.2)
-        provider_name: Provider to use ('sherlock', 'openai', 'openwebui', 'brave')
-        base_url: Override base URL (for OpenWebUI)
+        api_key: API key for the provider
+        model: Model name/identifier
+        messages: List of message dicts (role, content)
+        provider_name: 'sherlock', 'openai', 'openwebui', or 'brave'
+        temperature: Model creativity (0.0 - 1.0)
+        base_url: Optional base URL for OpenWebUI
+        stream: Whether to stream the response
 
     Returns:
-        LlmResponse with content and metadata
+        LlmResponse with content and metadata (or Iterator[LlmResponse] if streaming)
 
     Raises:
         ApiError: On API errors

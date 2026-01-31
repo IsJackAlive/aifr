@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Iterator, Union
 
 import requests
 from requests import Response
@@ -49,17 +49,52 @@ class LlmProvider(ABC):
         model: str,
         messages: list[dict[str, str]],
         temperature: float = 0.2,
-    ) -> LlmResponse:
+        stream: bool = False,
+    ) -> Union[LlmResponse, Iterator[LlmResponse]]:
         """Call the LLM API and return standardized response."""
         pass
 
     def _safe_int(self, value: Any) -> Optional[int]:
         """Safely convert value to int."""
-        if isinstance(value, int):
-            return value
-        if isinstance(value, str) and value.isdigit():
+        try:
             return int(value)
-        return None
+        except (ValueError, TypeError):
+            return None
+
+    def _stream_sse(self, resp: Response, model: str) -> Iterator[LlmResponse]:
+        """Shared SSE parser for OpenAI-compatible streams."""
+        import json
+        for line in resp.iter_lines():
+            if not line:
+                continue
+            line_str = line.decode("utf-8").strip()
+            if not line_str.startswith("data: "):
+                continue
+            
+            data_str = line_str[6:]
+            if data_str == "[DONE]":
+                break
+                
+            try:
+                data = json.loads(data_str)
+                choices = data.get("choices", [])
+                if not choices:
+                    continue
+                    
+                delta = choices[0].get("delta", {})
+                content_chunk = delta.get("content", "")
+                
+                usage = data.get("usage", {})
+                
+                yield LlmResponse(
+                    content=content_chunk,
+                    model=model,
+                    prompt_tokens=self._safe_int(usage.get("prompt_tokens")),
+                    completion_tokens=self._safe_int(usage.get("completion_tokens")),
+                    total_tokens=self._safe_int(usage.get("total_tokens")),
+                )
+            except json.JSONDecodeError:
+                continue
 
 
 class SherlockProvider(LlmProvider):
@@ -76,7 +111,8 @@ class SherlockProvider(LlmProvider):
         model: str,
         messages: list[dict[str, str]],
         temperature: float = 0.2,
-    ) -> LlmResponse:
+        stream: bool = False,
+    ) -> Union[LlmResponse, Iterator[LlmResponse]]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -85,11 +121,12 @@ class SherlockProvider(LlmProvider):
             "model": model,
             "messages": messages,
             "temperature": temperature,
+            "stream": stream,
         }
 
         try:
             resp: Response = requests.post(
-                self.base_url, headers=headers, json=payload, timeout=60
+                self.base_url, headers=headers, json=payload, timeout=60, stream=stream
             )
         except requests.RequestException as exc:
             raise ApiError(f"Błąd połączenia z Sherlock API: {exc}") from exc
@@ -105,6 +142,9 @@ class SherlockProvider(LlmProvider):
                     f"Model przekroczył limit kontekstu: {error_text}"
                 )
             raise ApiError(f"Sherlock API błąd {resp.status_code}: {error_text}")
+
+        if stream:
+            return self._stream_sse(resp, model)
 
         try:
             data = resp.json()
@@ -146,7 +186,8 @@ class OpenAIProvider(LlmProvider):
         model: str,
         messages: list[dict[str, str]],
         temperature: float = 0.2,
-    ) -> LlmResponse:
+        stream: bool = False,
+    ) -> Union[LlmResponse, Iterator[LlmResponse]]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -155,18 +196,18 @@ class OpenAIProvider(LlmProvider):
             "model": model,
             "messages": messages,
             "temperature": temperature,
+            "stream": stream,
         }
 
         try:
             resp: Response = requests.post(
-                self.base_url, headers=headers, json=payload, timeout=60
+                self.base_url, headers=headers, json=payload, timeout=60, stream=stream
             )
         except requests.RequestException as exc:
             raise ApiError(f"Błąd połączenia z OpenAI API: {exc}") from exc
 
         if resp.status_code >= 300:
             error_text = resp.text
-            # OpenAI specific context length error
             if resp.status_code == 400:
                 try:
                     error_data = resp.json()
@@ -178,6 +219,9 @@ class OpenAIProvider(LlmProvider):
                 except ValueError:
                     pass
             raise ApiError(f"OpenAI API błąd {resp.status_code}: {error_text}")
+
+        if stream:
+            return self._stream_sse(resp, model)
 
         try:
             data = resp.json()
@@ -218,7 +262,8 @@ class OpenWebUIProvider(LlmProvider):
         model: str,
         messages: list[dict[str, str]],
         temperature: float = 0.2,
-    ) -> LlmResponse:
+        stream: bool = False,
+    ) -> Union[LlmResponse, Iterator[LlmResponse]]:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -227,6 +272,7 @@ class OpenWebUIProvider(LlmProvider):
             "model": model,
             "messages": messages,
             "temperature": temperature,
+            "stream": stream,
         }
 
         try:
@@ -239,6 +285,9 @@ class OpenWebUIProvider(LlmProvider):
         if resp.status_code >= 300:
             error_text = resp.text
             raise ApiError(f"OpenWebUI błąd {resp.status_code}: {error_text}")
+
+        if stream:
+            return self._stream_sse(resp, model)
 
         try:
             data = resp.json()
@@ -280,7 +329,8 @@ class BraveProvider(LlmProvider):
         model: str,
         messages: list[dict[str, str]],
         temperature: float = 0.2,
-    ) -> LlmResponse:
+        stream: bool = False,
+    ) -> Union[LlmResponse, Iterator[LlmResponse]]:
         """
         Brave API uses a different format - extracts query from messages
         and returns summarized search results.
