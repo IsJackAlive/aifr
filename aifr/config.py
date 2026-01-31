@@ -51,7 +51,6 @@ def load_config() -> Dict[str, Any]:
     # Check multiple env vars for different providers
     env_key = (
         os.getenv("SHERLOCK_API_KEY")
-        or os.getenv("AIFERRO_API_KEY")
         or os.getenv("OPENAI_API_KEY")
         or os.getenv("BRAVE_API_KEY")
         or os.getenv("OPENWEBUI_API_KEY")

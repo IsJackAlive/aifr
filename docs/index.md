@@ -129,7 +129,7 @@ EOF
 }
 ```
 
-Zobacz [config.json.example](config.json.example) dla więcej przykładów.
+Zobacz [config.json.example](../config.json.example) dla więcej przykładów.
 
 ## 🚀 Użycie
 

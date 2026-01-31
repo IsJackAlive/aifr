@@ -24,7 +24,7 @@ All LLM responses are now automatically rendered with syntax-highlighted markdow
 - **Italic/Emphasis** (`*text*`): Red-orange (#dd5341) - Italic
 - **Inline code** (`` `code` ``): Coral (#f57f5b)
 - **Code blocks** (` ```lang ... ``` `): Brown (#794a3a) with decorative borders
-- **Links** (`[text](url)`): Warm yellow with dimmed URL display
+- **Links** (`[text](exampleurl)`): Warm yellow with dimmed URL display
 - **Bullet points**: Cyan-teal bullets
 
 **Supported Markdown Elements:**
@@ -33,7 +33,7 @@ All LLM responses are now automatically rendered with syntax-highlighted markdow
 - Italic text (\*text\*)
 - Inline code (\`code\`)
 - Code blocks with language specification
-- Links [text](url)
+- Links [text](exampleurl)
 - Bullet lists (-, •, *)
 
 ## Implementation Details
