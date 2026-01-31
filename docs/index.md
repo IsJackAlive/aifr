@@ -129,7 +129,7 @@ EOF
 }
 ```
 
-Zobacz [config.json.example](../config.json.example) dla więcej przykładów.
+Zobacz [config.json.](https://github.com/IsJackAlive/aifr/blob/main/config.json.example) dla więcej przykładów.
 
 ## 🚀 Użycie
 
