@@ -24,6 +24,7 @@ class CliArgs:
     raw: bool
     rag: bool
     directory: str
+    exec_mode: bool
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -60,6 +61,12 @@ def create_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         default=".",
         help="Root directory for RAG scanning (default: .)",
+    )
+
+    parser.add_argument(
+        "--exec",
+        action="store_true",
+        help="Execute shell commands from response (implies --interactive)",
     )
 
     parser.add_argument(
@@ -185,6 +192,7 @@ def parse_cli_args(argv: Optional[list[str]] = None) -> CliArgs:
         raw=args.raw,
         rag=args.rag,
         directory=args.directory,
+        exec_mode=args.exec,
     )
 
 

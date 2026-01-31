@@ -95,6 +95,7 @@ class TestValidateArgs:
             raw=False,
             rag=False,
             directory=".",
+            exec_mode=False,
         )
         is_valid, _ = validate_args(args, has_stdin=False)
         assert is_valid
@@ -115,6 +116,7 @@ class TestValidateArgs:
             raw=False,
             rag=False,
             directory=".",
+            exec_mode=False,
         )
         is_valid, _ = validate_args(args, has_stdin=True)
         assert is_valid
@@ -135,6 +137,7 @@ class TestValidateArgs:
             raw=False,
             rag=False,
             directory=".",
+            exec_mode=False,
         )
         is_valid, msg = validate_args(args, has_stdin=False)
         assert not is_valid
@@ -156,6 +159,7 @@ class TestValidateArgs:
             raw=False,
             rag=False,
             directory=".",
+            exec_mode=False,
         )
         is_valid, _ = validate_args(args, has_stdin=False)
         assert is_valid
@@ -176,6 +180,7 @@ class TestValidateArgs:
             raw=False,
             rag=False,
             directory=".",
+            exec_mode=False,
         )
         is_valid, _ = validate_args(args, has_stdin=False)
         assert is_valid is True

@@ -17,7 +17,9 @@ from .session_store import clear_session, load_session, save_session
 from .terminal_capture import get_console_context, read_stdin_early
 from .rag import RAGEngine
 import time
+import os
 from pathlib import Path
+from .executor import CommandParser, ShellExecutor
 
 __version__ = "1.3.0"
 
@@ -228,6 +230,17 @@ def process_request(
         args.model or cfg_model, # Initial model candidate
         system_prompt
     )
+
+    # 1. Inject Exec Context if requested
+    if args.exec_mode:
+        shell_name = os.environ.get("SHELL", "bash")
+        os_name = sys.platform
+        system_prompt += (
+            f"\n\nYou are running on {os_name} with {shell_name}. "
+            "Provide commands in ```bash``` blocks. "
+            "Do not execute them yourself, just suggest them."
+        )
+
     # Update cfg_model to reflect potential change if args.model was updated (for logic below)
     # Actually args.model is what matters for select_model
     requested_model = args.model
@@ -341,6 +354,18 @@ def process_request(
             final_total_tokens,
         )
     
+    # Execution Mode
+    if args.exec_mode and final_content:
+        # TTY check is done inside confirm_and_execute but prompt asked to enforce for the mode.
+        if sys.stdout.isatty():
+            parser = CommandParser()
+            commands = parser.extract_commands(final_content)
+            if commands:
+                executor = ShellExecutor()
+                executor.confirm_and_execute(commands)
+        else:
+             sys.stderr.write("Warning: --exec ignored (not a TTY)\n")
+
     # Save context
     ctx.add_turn(user_message, final_content)
     save_session(ctx.max_tokens, ctx.messages)
@@ -436,6 +461,7 @@ def main() -> None:
                 raw=False,
                 rag=args.rag,
                 directory=args.directory,
+                exec_mode=args.exec_mode,
             )
             
             process_request(
