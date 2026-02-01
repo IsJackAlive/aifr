@@ -14,5 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Model Aliases**: New `model_aliases` config section to map short names to full models (e.g. `gpt` -> `openai/gpt-4o`).
 - **Dynamic Model Resolution**: Support for `provider/model` syntax in `--model` flag.
 - **Custom Agents**: New `--agent` flag and `custom_agents` config section to define specialized agents with custom system prompts and models.
+- **Lightweight RAG**: New `--rag` and `-d/--directory` flags for intelligent local context retrieval using TF-IDF/BM25.
+- **Shell Execution**: New `--exec` mode allowing Aiferro to propose and execute shell commands after user confirmation (Y/n/e).
+- **Safety Sandbox**: Command blacklist (rm -rf, mkfs) and TTY enforcement for shell execution.
 - **Smart TTY**: Automatic suppression of ANSI colors and banners when output is redirected to pipes or files.
 - **Raw Mode**: New `--raw / -r` flag to force plain text output.
+- **Streaming UI**: Real-time markdown rendering without ANSI artifacts.
+
